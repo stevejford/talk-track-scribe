@@ -90,6 +90,16 @@ export function TranscriptionPlayer({
     );
   };
 
+  const getCurrentUtterances = () => {
+    if (!utterances) return [];
+    const currentTimeMs = currentTime * 1000;
+    return utterances.filter(utterance => 
+      selectedSpeakers?.has(utterance.speaker) &&
+      utterance.start <= currentTimeMs && 
+      utterance.end >= currentTimeMs
+    );
+  };
+
   const togglePlay = () => {
     if (mediaRef.current) {
       if (isPlaying) {
@@ -184,34 +194,27 @@ export function TranscriptionPlayer({
             />
           )}
         </div>
-        
-        {showSubtitles && (
-          <div className="w-full bg-gradient-to-t from-black/90 to-transparent">
-            <div className="w-full px-4 py-6 space-y-2">
-              {getCurrentWords().map((utterance, index) => (
-                <div 
-                  key={index}
-                  className={cn(
-                    getSubtitleSize(),
-                    "font-semibold px-4 py-2 rounded-lg animate-fade-in",
-                    SPEAKER_COLORS[utterance.speaker]
-                  )}
-                >
-                  <span className="opacity-75">Speaker {utterance.speaker}:</span>{" "}
-                  {utterance.words
-                    .filter(
-                      word => 
-                        word.start <= currentTime * 1000 && 
-                        word.end >= currentTime * 1000
-                    )
-                    .map(word => word.text)
-                    .join(" ")}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
+
+      {showSubtitles && (
+        <div className="w-full bg-black/90 rounded-lg overflow-hidden">
+          <div className="w-full px-4 py-6 space-y-2">
+            {getCurrentUtterances().map((utterance, index) => (
+              <div 
+                key={index}
+                className={cn(
+                  getSubtitleSize(),
+                  "font-semibold px-4 py-2 rounded-lg animate-fade-in break-words whitespace-pre-wrap",
+                  SPEAKER_COLORS[utterance.speaker]
+                )}
+              >
+                <span className="opacity-75">Speaker {utterance.speaker}:</span>{" "}
+                {utterance.text}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="p-4 bg-card rounded-lg shadow-lg space-y-4">
         <div className="flex items-center justify-between space-x-4">
