@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { TranscriptUtterance } from "@/types/assemblyai";
 import { Button } from "@/components/ui/button";
@@ -194,27 +193,27 @@ export function TranscriptionPlayer({
             />
           )}
         </div>
-      </div>
-
-      {showSubtitles && (
-        <div className="w-full bg-black/90 rounded-lg overflow-hidden">
-          <div className="w-full px-4 py-6 space-y-2">
-            {getCurrentUtterances().map((utterance, index) => (
-              <div 
-                key={index}
-                className={cn(
-                  getSubtitleSize(),
-                  "font-semibold px-4 py-2 rounded-lg animate-fade-in break-words whitespace-pre-wrap",
-                  SPEAKER_COLORS[utterance.speaker]
-                )}
-              >
-                <span className="opacity-75">Speaker {utterance.speaker}:</span>{" "}
-                {utterance.text}
-              </div>
-            ))}
+        
+        {showSubtitles && (
+          <div className="w-full bg-gradient-to-t from-black/90 to-transparent">
+            <div className="w-full px-4 py-6 space-y-2">
+              {getCurrentUtterances().map((utterance, index) => (
+                <div 
+                  key={index}
+                  className={cn(
+                    getSubtitleSize(),
+                    "font-semibold px-4 py-2 rounded-lg animate-fade-in",
+                    SPEAKER_COLORS[utterance.speaker]
+                  )}
+                >
+                  <span className="opacity-75">Speaker {utterance.speaker}:</span>{" "}
+                  {utterance.text}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="p-4 bg-card rounded-lg shadow-lg space-y-4">
         <div className="flex items-center justify-between space-x-4">
