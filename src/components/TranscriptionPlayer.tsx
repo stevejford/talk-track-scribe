@@ -32,7 +32,7 @@ export function TranscriptionPlayer({
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
-  const isVideo = mediaUrl.match(/\.(mp4|mov)$/i);
+  const isVideo = mediaUrl.match(/\.(mp4|mov|webm)$/i);
 
   useEffect(() => {
     if (mediaRef.current) {
@@ -102,32 +102,31 @@ export function TranscriptionPlayer({
 
   return (
     <div className="space-y-4">
-      <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-        {isVideo ? (
+      {isVideo && (
+        <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
           <video
             ref={mediaRef as React.RefObject<HTMLVideoElement>}
             src={mediaUrl}
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
             onEnded={() => setIsPlaying(false)}
-            className="w-full h-full"
+            className="w-full h-full object-contain"
           />
-        ) : (
-          <audio
-            ref={mediaRef as React.RefObject<HTMLAudioElement>}
-            src={mediaUrl}
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={handleLoadedMetadata}
-            onEnded={() => setIsPlaying(false)}
-          />
-        )}
-      </div>
+        </div>
+      )}
+      {!isVideo && (
+        <audio
+          ref={mediaRef as React.RefObject<HTMLAudioElement>}
+          src={mediaUrl}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={() => setIsPlaying(false)}
+        />
+      )}
 
       <div className="p-4 bg-card rounded-lg shadow-lg space-y-4">
         <div className="flex items-center justify-between space-x-4">
-          <span className="text-sm font-medium">
-            {formatTime(currentTime)}
-          </span>
+          <span className="text-sm font-medium">{formatTime(currentTime)}</span>
           <Slider
             value={[currentTime]}
             max={duration}
@@ -139,9 +138,7 @@ export function TranscriptionPlayer({
             }}
             className="w-full"
           />
-          <span className="text-sm font-medium">
-            {formatTime(duration)}
-          </span>
+          <span className="text-sm font-medium">{formatTime(duration)}</span>
         </div>
 
         <div className="flex items-center justify-center space-x-4">

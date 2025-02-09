@@ -3,6 +3,8 @@ import { useState } from "react";
 import { TranscriptUtterance } from "@/types/assemblyai";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TranscriptionViewerProps {
@@ -28,6 +30,14 @@ export function TranscriptionViewer({
   onSpeakerToggle,
 }: TranscriptionViewerProps) {
   const speakers = Array.from(new Set(utterances.map((u) => u.speaker))).sort();
+
+  const playSpeakerSegment = (utterance: TranscriptUtterance) => {
+    const mediaElement = document.querySelector("video, audio") as HTMLMediaElement;
+    if (mediaElement) {
+      mediaElement.currentTime = utterance.start / 1000;
+      mediaElement.play();
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -57,18 +67,27 @@ export function TranscriptionViewer({
               <div
                 key={index}
                 className={cn(
-                  "p-4 rounded-lg transition-colors cursor-pointer hover:bg-accent",
+                  "p-4 rounded-lg transition-colors",
                   currentTime * 1000 >= utterance.start && currentTime * 1000 <= utterance.end
                     ? "bg-accent"
                     : "bg-card",
                   SPEAKER_COLORS[utterance.speaker]
                 )}
-                onClick={() => onUtteranceClick(utterance.start)}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <Badge variant="outline" className="text-xs">
-                    Speaker {utterance.speaker}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      Speaker {utterance.speaker}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => playSpeakerSegment(utterance)}
+                    >
+                      <Play className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <span className="text-xs text-muted-foreground">
                     {formatTime(utterance.start)} - {formatTime(utterance.end)}
                   </span>
