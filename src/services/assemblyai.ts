@@ -1,4 +1,3 @@
-
 import { TranscriptionResult } from "@/types/assemblyai";
 
 const API_BASE_URL = "https://api.assemblyai.com/v2";
@@ -12,11 +11,9 @@ export async function uploadAudio(file: File, apiKey: string): Promise<string> {
     throw new Error(`Unsupported file type: ${mimeType}. Please upload an audio or video file.`);
   }
   
-  // Create a new Blob with the explicit MIME type
-  const mediaBlob = new Blob([file], { type: mimeType });
-  
+  // Use the File object directly - it's already a Blob with the correct type
   const formData = new FormData();
-  formData.append("file", mediaBlob, file.name);
+  formData.append("file", file);
 
   console.log("Uploading with MIME type:", mimeType);
 
