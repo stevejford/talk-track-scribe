@@ -4,8 +4,10 @@ import { TranscriptUtterance } from "@/types/assemblyai";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Play } from "lucide-react";
+import { Play, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface TranscriptionViewerProps {
   utterances: TranscriptUtterance[];
@@ -16,14 +18,16 @@ interface TranscriptionViewerProps {
 }
 
 const SPEAKER_COLORS: { [key: string]: string } = {
-  A: "bg-blue-100 text-blue-800 border-blue-200",
-  B: "bg-green-100 text-green-800 border-green-200",
-  C: "bg-purple-100 text-purple-800 border-purple-200",
-  D: "bg-orange-100 text-orange-800 border-orange-200",
-  E: "bg-red-100 text-red-800 border-red-200",
-  F: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  G: "bg-pink-100 text-pink-800 border-pink-200",
-  H: "bg-indigo-100 text-indigo-800 border-indigo-200",
+  A: "bg-[#D3E4FD] text-blue-800 border-blue-200",
+  B: "bg-[#F2FCE2] text-green-800 border-green-200",
+  C: "bg-[#E5DEFF] text-purple-800 border-purple-200",
+  D: "bg-[#FEC6A1] text-orange-800 border-orange-200",
+  E: "bg-[#FFDEE2] text-red-800 border-red-200",
+  F: "bg-[#FEF7CD] text-yellow-800 border-yellow-200",
+  G: "bg-[#FDE1D3] text-pink-800 border-pink-200",
+  H: "bg-[#9b87f5] text-indigo-100 border-indigo-200",
+  I: "bg-[#7E69AB] text-purple-100 border-purple-200",
+  J: "bg-[#6E59A5] text-purple-100 border-purple-200",
 };
 
 export function TranscriptionViewer({
@@ -34,6 +38,9 @@ export function TranscriptionViewer({
   onSpeakerToggle,
 }: TranscriptionViewerProps) {
   const speakers = Array.from(new Set(utterances.map((u) => u.speaker))).sort();
+  const [speakerNames, setSpeakerNames] = useState<{ [key: string]: string }>({});
+  const [editingSpeaker, setEditingSpeaker] = useState<string | null>(null);
+  const [tempName, setTempName] = useState("");
 
   const playSpeakerSegment = (utterance: TranscriptUtterance) => {
     const mediaElement = document.querySelector("video, audio") as HTMLMediaElement;
@@ -43,23 +50,74 @@ export function TranscriptionViewer({
     }
   };
 
+  const handleSpeakerRename = (speaker: string) => {
+    if (tempName.trim()) {
+      setSpeakerNames({
+        ...speakerNames,
+        [speaker]: tempName.trim(),
+      });
+    }
+    setEditingSpeaker(null);
+    setTempName("");
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         {speakers.map((speaker) => (
-          <Badge
+          <Popover
             key={speaker}
-            variant="outline"
-            className={cn(
-              "cursor-pointer transition-colors",
-              selectedSpeakers.has(speaker)
-                ? SPEAKER_COLORS[speaker]
-                : "opacity-50"
-            )}
-            onClick={() => onSpeakerToggle(speaker)}
+            open={editingSpeaker === speaker}
+            onOpenChange={(open) => {
+              if (open) {
+                setEditingSpeaker(speaker);
+                setTempName(speakerNames[speaker] || "");
+              } else {
+                handleSpeakerRename(speaker);
+              }
+            }}
           >
-            Speaker {speaker}
-          </Badge>
+            <PopoverTrigger asChild>
+              <div className="flex items-center gap-1">
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "cursor-pointer transition-colors",
+                    selectedSpeakers.has(speaker)
+                      ? SPEAKER_COLORS[speaker]
+                      : "opacity-50"
+                  )}
+                  onClick={() => onSpeakerToggle(speaker)}
+                >
+                  {speakerNames[speaker] || `Speaker ${speaker}`}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 rounded-full"
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-64">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">
+                  Rename Speaker {speaker}
+                </label>
+                <Input
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  placeholder="Enter speaker name"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSpeakerRename(speaker);
+                    }
+                  }}
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
         ))}
       </div>
 
@@ -72,7 +130,8 @@ export function TranscriptionViewer({
                 key={index}
                 className={cn(
                   "p-4 rounded-lg transition-colors",
-                  currentTime * 1000 >= utterance.start && currentTime * 1000 <= utterance.end
+                  currentTime * 1000 >= utterance.start &&
+                    currentTime * 1000 <= utterance.end
                     ? "bg-accent"
                     : "bg-card",
                   SPEAKER_COLORS[utterance.speaker]
@@ -81,7 +140,8 @@ export function TranscriptionViewer({
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-xs">
-                      Speaker {utterance.speaker}
+                      {speakerNames[utterance.speaker] ||
+                        `Speaker ${utterance.speaker}`}
                     </Badge>
                     <Button
                       variant="ghost"
