@@ -6,15 +6,19 @@ const API_BASE_URL = "https://api.assemblyai.com/v2";
 export async function uploadAudio(file: File, apiKey: string): Promise<string> {
   console.log("Starting audio upload...", { fileName: file.name, fileSize: file.size });
   
-  // Create a new Blob with the correct MIME type
-  const audioBlob = new Blob([file], { 
-    type: file.type || getMimeType(file.name)
-  });
+  // Get the correct MIME type and validate it
+  const mimeType = file.type || getMimeType(file.name);
+  if (!isValidMediaType(mimeType)) {
+    throw new Error(`Unsupported file type: ${mimeType}. Please upload an audio or video file.`);
+  }
+  
+  // Create a new Blob with the explicit MIME type
+  const mediaBlob = new Blob([file], { type: mimeType });
   
   const formData = new FormData();
-  formData.append("file", audioBlob, file.name);
+  formData.append("file", mediaBlob, file.name);
 
-  console.log("Uploading with MIME type:", audioBlob.type);
+  console.log("Uploading with MIME type:", mimeType);
 
   const response = await fetch(`${API_BASE_URL}/upload`, {
     method: "POST",
@@ -47,9 +51,17 @@ function getMimeType(filename: string): string {
     'm4a': 'audio/mp4',
     'flac': 'audio/flac',
     'mp4': 'video/mp4',
-    'mov': 'video/quicktime'
+    'mov': 'video/quicktime',
+    'webm': 'video/webm',
+    'ogg': 'audio/ogg',
+    'oga': 'audio/ogg',
+    'ogv': 'video/ogg'
   };
   return mimeTypes[ext || ''] || 'audio/mpeg';
+}
+
+function isValidMediaType(mimeType: string): boolean {
+  return mimeType.startsWith('audio/') || mimeType.startsWith('video/');
 }
 
 export async function startTranscription(audioUrl: string, apiKey: string): Promise<string> {
