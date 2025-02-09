@@ -1,8 +1,8 @@
-
 import { useState, useRef, useEffect } from "react";
 import { TranscriptUtterance } from "@/types/assemblyai";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Play,
   Pause,
@@ -52,11 +52,14 @@ export function TranscriptionPlayer({
   const [showSubtitles, setShowSubtitles] = useState(true);
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
   const [isVideo, setIsVideo] = useState(false);
+  const [videoAspectRatio, setVideoAspectRatio] = useState<number>(16/9);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const videoCheck = document.createElement('video');
     videoCheck.onloadedmetadata = () => {
       setIsVideo(true);
+      setVideoAspectRatio(videoCheck.videoWidth / videoCheck.videoHeight);
     };
     videoCheck.onerror = () => {
       setIsVideo(false);
@@ -144,6 +147,14 @@ export function TranscriptionPlayer({
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
+  const getSubtitleSize = () => {
+    if (!isMobile) return "text-2xl";
+    if (videoAspectRatio < 1) {
+      return "text-4xl";
+    }
+    return "text-xl";
+  };
+
   return (
     <div className="space-y-4">
       {error && (
@@ -169,7 +180,8 @@ export function TranscriptionPlayer({
                   <div 
                     key={index}
                     className={cn(
-                      "text-2xl font-semibold bg-black/75 px-4 py-2 rounded-lg animate-fade-in whitespace-nowrap",
+                      getSubtitleSize(),
+                      "font-semibold bg-black/75 px-4 py-2 rounded-lg animate-fade-in whitespace-nowrap",
                       SPEAKER_COLORS[utterance.speaker]
                     )}
                   >
