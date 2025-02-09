@@ -1,6 +1,5 @@
+
 import { useState } from "react";
-import { MediaUploader } from "@/components/MediaUploader";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   uploadAudio,
@@ -8,15 +7,10 @@ import {
   getTranscriptionResult,
 } from "@/services/assemblyai";
 import { type TranscriptionResult } from "@/types/assemblyai";
-import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { TranscriptionPlayer } from "@/components/TranscriptionPlayer";
-import { TranscriptionViewer } from "@/components/TranscriptionViewer";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { MediaInputSection } from "@/components/MediaInputSection";
+import { ResultsSection } from "@/components/ResultsSection";
+import { LibrarySection } from "@/components/LibrarySection";
 
 interface SavedSession {
   id: string;
@@ -32,7 +26,6 @@ export default function Index() {
   const [progress, setProgress] = useState(0);
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [speakersExpected, setSpeakersExpected] = useState(2);
-  const [currentTime, setCurrentTime] = useState(0);
   const [transcriptionResult, setTranscriptionResult] = useState<TranscriptionResult | null>(null);
   const [selectedSpeakers, setSelectedSpeakers] = useState<Set<string>>(new Set());
   const [sessionTitle, setSessionTitle] = useState("");
@@ -203,117 +196,36 @@ export default function Index() {
             <TabsTrigger value="library">Library</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="upload" className="space-y-6">
-            <div className="p-6 bg-card rounded-lg shadow-lg space-y-6">
-              <div className="space-y-4">
-                <div className="flex flex-col space-y-2">
-                  <Label htmlFor="speakers">Expected Number of Speakers</Label>
-                  <Input
-                    id="speakers"
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={speakersExpected}
-                    onChange={(e) => setSpeakersExpected(Math.min(10, Math.max(1, parseInt(e.target.value) || 1)))}
-                    disabled={isProcessing}
-                    className="max-w-[200px]"
-                  />
-                </div>
-                <MediaUploader
-                  onFileSelected={handleFileSelected}
-                  onUrlSubmitted={handleUrlSubmitted}
-                  isProcessing={isProcessing}
-                />
-              </div>
-
-              {isProcessing && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-center space-x-2">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <span className="text-sm font-medium">Processing media...</span>
-                  </div>
-                  <Progress value={progress} />
-                </div>
-              )}
-            </div>
+          <TabsContent value="upload">
+            <MediaInputSection
+              isProcessing={isProcessing}
+              progress={progress}
+              speakersExpected={speakersExpected}
+              onSpeakersChange={setSpeakersExpected}
+              onFileSelected={handleFileSelected}
+              onUrlSubmitted={handleUrlSubmitted}
+            />
           </TabsContent>
 
           <TabsContent value="results" className="space-y-8">
             {transcriptionResult && mediaUrl && (
-              <>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-1">
-                      <Label htmlFor="title">Session Title</Label>
-                      <Input
-                        id="title"
-                        value={sessionTitle}
-                        onChange={(e) => setSessionTitle(e.target.value)}
-                        placeholder="Enter a title for this session"
-                      />
-                    </div>
-                    <Button onClick={saveSession} className="mt-6">
-                      Save to Library
-                    </Button>
-                  </div>
-                </div>
-                <TranscriptionPlayer
-                  mediaUrl={mediaUrl}
-                  utterances={transcriptionResult.utterances}
-                  onTimeUpdate={setCurrentTime}
-                  selectedSpeakers={selectedSpeakers}
-                />
-                <TranscriptionViewer
-                  utterances={transcriptionResult.utterances}
-                  currentTime={currentTime}
-                  onUtteranceClick={(time) => {
-                    const mediaElement = document.querySelector("video, audio");
-                    if (mediaElement) {
-                      (mediaElement as HTMLMediaElement).currentTime = time / 1000;
-                    }
-                  }}
-                  selectedSpeakers={selectedSpeakers}
-                  onSpeakerToggle={(speaker) => {
-                    const newSelectedSpeakers = new Set(selectedSpeakers);
-                    if (newSelectedSpeakers.has(speaker)) {
-                      newSelectedSpeakers.delete(speaker);
-                    } else {
-                      newSelectedSpeakers.add(speaker);
-                    }
-                    setSelectedSpeakers(newSelectedSpeakers);
-                  }}
-                />
-              </>
+              <ResultsSection
+                mediaUrl={mediaUrl}
+                transcriptionResult={transcriptionResult}
+                sessionTitle={sessionTitle}
+                onSessionTitleChange={setSessionTitle}
+                onSaveSession={saveSession}
+                selectedSpeakers={selectedSpeakers}
+                onSelectedSpeakersChange={setSelectedSpeakers}
+              />
             )}
           </TabsContent>
 
-          <TabsContent value="library" className="space-y-4">
-            <ScrollArea className="h-[600px]">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {savedSessions.map((session) => (
-                  <Card key={session.id} className="overflow-hidden">
-                    <CardContent className="p-4">
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-semibold text-lg">{session.title}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {new Date(session.date).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <Button variant="secondary" onClick={() => loadSession(session)}>
-                            Load
-                          </Button>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {session.transcriptionResult.utterances.length} segments
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </ScrollArea>
+          <TabsContent value="library">
+            <LibrarySection
+              savedSessions={savedSessions}
+              onLoadSession={loadSession}
+            />
           </TabsContent>
         </Tabs>
       </div>
