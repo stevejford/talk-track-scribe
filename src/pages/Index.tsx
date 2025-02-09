@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { MediaUploader } from "@/components/MediaUploader";
 import { Progress } from "@/components/ui/progress";
@@ -15,6 +14,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TranscriptionPlayer } from "@/components/TranscriptionPlayer";
 import { TranscriptionViewer } from "@/components/TranscriptionViewer";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface SavedSession {
+  id: string;
+  title: string;
+  date: string;
+  mediaUrl: string;
+  transcriptionResult: TranscriptionResult;
+  thumbnail?: string;
+}
 
 export default function Index() {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -24,7 +35,47 @@ export default function Index() {
   const [currentTime, setCurrentTime] = useState(0);
   const [transcriptionResult, setTranscriptionResult] = useState<TranscriptionResult | null>(null);
   const [selectedSpeakers, setSelectedSpeakers] = useState<Set<string>>(new Set());
+  const [sessionTitle, setSessionTitle] = useState("");
+  const [savedSessions, setSavedSessions] = useState<SavedSession[]>(() => {
+    const saved = localStorage.getItem("savedSessions");
+    return saved ? JSON.parse(saved) : [];
+  });
   const { toast } = useToast();
+
+  const saveSession = () => {
+    if (!mediaUrl || !transcriptionResult || !sessionTitle.trim()) {
+      toast({
+        title: "Cannot Save Session",
+        description: "Please ensure you have a title and completed transcription.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newSession: SavedSession = {
+      id: Date.now().toString(),
+      title: sessionTitle,
+      date: new Date().toISOString(),
+      mediaUrl,
+      transcriptionResult,
+    };
+
+    const updatedSessions = [...savedSessions, newSession];
+    setSavedSessions(updatedSessions);
+    localStorage.setItem("savedSessions", JSON.stringify(updatedSessions));
+
+    toast({
+      title: "Session Saved",
+      description: "Your transcription has been saved to the library.",
+    });
+  };
+
+  const loadSession = (session: SavedSession) => {
+    setMediaUrl(session.mediaUrl);
+    setTranscriptionResult(session.transcriptionResult);
+    setSessionTitle(session.title);
+    setSelectedSpeakers(new Set(session.transcriptionResult.utterances.map((u) => u.speaker)));
+  };
 
   const handleFileSelected = async (file: File) => {
     try {
@@ -146,9 +197,10 @@ export default function Index() {
         </div>
 
         <Tabs defaultValue="upload" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="upload">Upload</TabsTrigger>
             <TabsTrigger value="results" disabled={!transcriptionResult}>Results</TabsTrigger>
+            <TabsTrigger value="library">Library</TabsTrigger>
           </TabsList>
 
           <TabsContent value="upload" className="space-y-6">
@@ -189,6 +241,22 @@ export default function Index() {
           <TabsContent value="results" className="space-y-8">
             {transcriptionResult && mediaUrl && (
               <>
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex-1">
+                      <Label htmlFor="title">Session Title</Label>
+                      <Input
+                        id="title"
+                        value={sessionTitle}
+                        onChange={(e) => setSessionTitle(e.target.value)}
+                        placeholder="Enter a title for this session"
+                      />
+                    </div>
+                    <Button onClick={saveSession} className="mt-6">
+                      Save to Library
+                    </Button>
+                  </div>
+                </div>
                 <TranscriptionPlayer
                   mediaUrl={mediaUrl}
                   utterances={transcriptionResult.utterances}
@@ -217,6 +285,35 @@ export default function Index() {
                 />
               </>
             )}
+          </TabsContent>
+
+          <TabsContent value="library" className="space-y-4">
+            <ScrollArea className="h-[600px]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {savedSessions.map((session) => (
+                  <Card key={session.id} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-semibold text-lg">{session.title}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(session.date).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <Button variant="secondary" onClick={() => loadSession(session)}>
+                            Load
+                          </Button>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {session.transcriptionResult.utterances.length} segments
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
           </TabsContent>
         </Tabs>
       </div>
