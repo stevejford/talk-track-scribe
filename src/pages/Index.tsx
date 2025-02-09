@@ -3,9 +3,6 @@ import { useState } from "react";
 import { MediaUploader } from "@/components/MediaUploader";
 import { TranscriptionPlayer } from "@/components/TranscriptionPlayer";
 import { TranscriptionViewer } from "@/components/TranscriptionViewer";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
 import { Progress } from "@/components/ui/progress";
 import {
   uploadAudio,
@@ -14,9 +11,9 @@ import {
 } from "@/services/assemblyai";
 import { TranscriptionResult } from "@/types/assemblyai";
 import { Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Index() {
-  const [apiKey, setApiKey] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -26,15 +23,6 @@ export default function Index() {
   const { toast } = useToast();
 
   const handleFileSelected = async (file: File) => {
-    if (!apiKey) {
-      toast({
-        title: "API Key Required",
-        description: "Please enter your AssemblyAI API key first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       setIsProcessing(true);
       setProgress(0);
@@ -45,11 +33,11 @@ export default function Index() {
 
       // Upload the file
       setProgress(20);
-      const uploadUrl = await uploadAudio(file, apiKey);
+      const uploadUrl = await uploadAudio(file);
 
       // Start transcription
       setProgress(40);
-      const transcriptId = await startTranscription(uploadUrl, apiKey);
+      const transcriptId = await startTranscription(uploadUrl);
 
       // Poll for results
       let attempts = 0;
@@ -58,7 +46,7 @@ export default function Index() {
 
       const pollResult = async () => {
         try {
-          const result = await getTranscriptionResult(transcriptId, apiKey);
+          const result = await getTranscriptionResult(transcriptId);
           setProgress(60 + (attempts / maxAttempts) * 40);
 
           if (result.status === "completed") {
@@ -91,21 +79,12 @@ export default function Index() {
   };
 
   const handleUrlSubmitted = async (url: string) => {
-    if (!apiKey) {
-      toast({
-        title: "API Key Required",
-        description: "Please enter your AssemblyAI API key first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       setIsProcessing(true);
       setProgress(20);
       setMediaUrl(url);
 
-      const transcriptId = await startTranscription(url, apiKey);
+      const transcriptId = await startTranscription(url);
       setProgress(40);
 
       // Poll for results (same as in handleFileSelected)
@@ -115,7 +94,7 @@ export default function Index() {
 
       const pollResult = async () => {
         try {
-          const result = await getTranscriptionResult(transcriptId, apiKey);
+          const result = await getTranscriptionResult(transcriptId);
           setProgress(60 + (attempts / maxAttempts) * 40);
 
           if (result.status === "completed") {
@@ -169,23 +148,6 @@ export default function Index() {
         </div>
 
         <div className="p-6 bg-card rounded-lg shadow-lg space-y-6">
-          <div className="space-y-2">
-            <label
-              htmlFor="apiKey"
-              className="text-sm font-medium text-muted-foreground"
-            >
-              AssemblyAI API Key
-            </label>
-            <Input
-              id="apiKey"
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter your API key..."
-              className="font-mono"
-            />
-          </div>
-
           <MediaUploader
             onFileSelected={handleFileSelected}
             onUrlSubmitted={handleUrlSubmitted}
