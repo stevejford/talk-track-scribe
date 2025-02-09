@@ -1,3 +1,4 @@
+
 import { TranscriptionResult } from "@/types/assemblyai";
 
 const API_BASE_URL = "https://api.assemblyai.com/v2";
