@@ -12,6 +12,7 @@ import {
   VolumeX,
   Ear,
   EarOff,
+  Subtitles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,19 @@ interface TranscriptionPlayerProps {
   onTimeUpdate?: (time: number) => void;
   selectedSpeakers?: Set<string>;
 }
+
+const SPEAKER_COLORS: { [key: string]: string } = {
+  A: "text-blue-500",
+  B: "text-green-500",
+  C: "text-purple-500",
+  D: "text-orange-500",
+  E: "text-red-500",
+  F: "text-yellow-500",
+  G: "text-pink-500",
+  H: "text-indigo-500",
+  I: "text-violet-500",
+  J: "text-teal-500",
+};
 
 export function TranscriptionPlayer({
   mediaUrl,
@@ -35,11 +49,11 @@ export function TranscriptionPlayer({
   const [isMuted, setIsMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [originalSound, setOriginalSound] = useState(true);
+  const [showSubtitles, setShowSubtitles] = useState(true);
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
   const [isVideo, setIsVideo] = useState(false);
 
   useEffect(() => {
-    // Create a temporary video element to check if the media is video
     const videoCheck = document.createElement('video');
     videoCheck.onloadedmetadata = () => {
       setIsVideo(true);
@@ -50,7 +64,7 @@ export function TranscriptionPlayer({
     videoCheck.src = mediaUrl;
 
     return () => {
-      videoCheck.src = ''; // Cleanup
+      videoCheck.src = '';
     };
   }, [mediaUrl]);
 
@@ -60,27 +74,17 @@ export function TranscriptionPlayer({
     }
   }, [volume]);
 
-  useEffect(() => {
-    if (!mediaRef.current || !utterances || !selectedSpeakers) return;
-
-    if (originalSound) {
-      mediaRef.current.volume = volume;
-      return;
-    }
-
-    const currentUtterance = utterances.find(
-      (u) =>
-        currentTime * 1000 >= u.start &&
-        currentTime * 1000 <= u.end &&
-        selectedSpeakers.has(u.speaker)
+  const getCurrentWords = () => {
+    if (!utterances) return [];
+    const currentTimeMs = currentTime * 1000;
+    return utterances.filter(utterance => 
+      selectedSpeakers?.has(utterance.speaker) &&
+      utterance.words.some(word => 
+        word.start <= currentTimeMs && 
+        word.end >= currentTimeMs
+      )
     );
-
-    if (!currentUtterance) {
-      mediaRef.current.volume = 0;
-    } else {
-      mediaRef.current.volume = volume;
-    }
-  }, [currentTime, utterances, selectedSpeakers, volume, originalSound]);
+  };
 
   const togglePlay = () => {
     if (mediaRef.current) {
@@ -107,7 +111,6 @@ export function TranscriptionPlayer({
 
   const handleLoadedMetadata = () => {
     if (mediaRef.current) {
-      console.log("Media loaded, duration:", mediaRef.current.duration);
       setDuration(mediaRef.current.duration);
     }
   };
@@ -146,31 +149,56 @@ export function TranscriptionPlayer({
       {error && (
         <div className="p-4 bg-red-100 text-red-700 rounded-lg">{error}</div>
       )}
-      {isVideo ? (
-        <div className="relative aspect-video bg-black rounded-lg overflow-hidden w-full">
-          <video
-            ref={mediaRef as React.RefObject<HTMLVideoElement>}
+      <div className="relative">
+        {isVideo ? (
+          <div className="relative aspect-video bg-black rounded-lg overflow-hidden w-full">
+            <video
+              ref={mediaRef as React.RefObject<HTMLVideoElement>}
+              src={mediaUrl}
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={handleLoadedMetadata}
+              onError={handleError}
+              onEnded={() => setIsPlaying(false)}
+              className="w-full h-full object-contain"
+              playsInline
+              preload="auto"
+            />
+            {showSubtitles && (
+              <div className="absolute bottom-16 left-0 right-0 flex flex-col items-center justify-center space-y-2 p-4">
+                {getCurrentWords().map((utterance, index) => (
+                  <div 
+                    key={index}
+                    className={cn(
+                      "text-2xl font-semibold bg-black/75 px-4 py-2 rounded-lg animate-fade-in whitespace-nowrap",
+                      SPEAKER_COLORS[utterance.speaker]
+                    )}
+                  >
+                    <span className="opacity-75">Speaker {utterance.speaker}:</span>{" "}
+                    {utterance.words
+                      .filter(
+                        word => 
+                          word.start <= currentTime * 1000 && 
+                          word.end >= currentTime * 1000
+                      )
+                      .map(word => word.text)
+                      .join(" ")}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <audio
+            ref={mediaRef as React.RefObject<HTMLAudioElement>}
             src={mediaUrl}
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
             onError={handleError}
             onEnded={() => setIsPlaying(false)}
-            className="w-full h-full object-contain"
-            playsInline
             preload="auto"
           />
-        </div>
-      ) : (
-        <audio
-          ref={mediaRef as React.RefObject<HTMLAudioElement>}
-          src={mediaUrl}
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
-          onError={handleError}
-          onEnded={() => setIsPlaying(false)}
-          preload="auto"
-        />
-      )}
+        )}
+      </div>
 
       <div className="p-4 bg-card rounded-lg shadow-lg space-y-4">
         <div className="flex items-center justify-between space-x-4">
@@ -246,7 +274,17 @@ export function TranscriptionPlayer({
             />
           </div>
           
-          <div className="flex items-center space-x-2 bg-accent/50 rounded-lg px-3 py-1">
+          <div className="flex items-center space-x-2">
+            <Button
+              variant={showSubtitles ? "default" : "ghost"}
+              onClick={() => setShowSubtitles(!showSubtitles)}
+              className="space-x-2"
+              size="sm"
+            >
+              <Subtitles className="h-4 w-4" />
+              <span>{showSubtitles ? "Hide Subtitles" : "Show Subtitles"}</span>
+            </Button>
+            
             <Button
               variant={originalSound ? "default" : "ghost"}
               onClick={toggleOriginalSound}
@@ -271,4 +309,3 @@ export function TranscriptionPlayer({
     </div>
   );
 }
-
