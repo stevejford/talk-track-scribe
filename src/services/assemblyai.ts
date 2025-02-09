@@ -65,18 +65,22 @@ function isValidMediaType(mimeType: string): boolean {
 
 export async function startTranscription(audioUrl: string): Promise<string> {
   console.log("Starting transcription...", { audioUrl });
+  const requestBody = {
+    audio_url: audioUrl, // Changed from audioUrl to audio_url
+    speaker_labels: true,
+    speakers_expected: 8,
+    auto_detect_speakers: true
+  };
+
+  console.log("Sending request with body:", requestBody);
+
   const response = await fetch(`${API_BASE_URL}/transcript`, {
     method: "POST",
     headers: {
       Authorization: API_KEY,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      audio_url: audioUrl,
-      speaker_labels: true,
-      speakers_expected: 8, // Updated to expect up to 8 speakers
-      auto_detect_speakers: true, // Enable automatic speaker detection
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
