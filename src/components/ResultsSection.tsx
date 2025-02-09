@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TranscriptionPlayer } from "@/components/TranscriptionPlayer";
 import { TranscriptionViewer } from "@/components/TranscriptionViewer";
+import { useState } from "react"; // Added this import
 
 interface ResultsSectionProps {
   mediaUrl: string;
