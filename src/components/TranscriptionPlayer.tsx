@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { TranscriptUtterance } from "@/types/assemblyai";
 import { Button } from "@/components/ui/button";
@@ -86,16 +87,6 @@ export function TranscriptionPlayer({
         word.start <= currentTimeMs && 
         word.end >= currentTimeMs
       )
-    );
-  };
-
-  const getCurrentUtterances = () => {
-    if (!utterances) return [];
-    const currentTimeMs = currentTime * 1000;
-    return utterances.filter(utterance => 
-      selectedSpeakers?.has(utterance.speaker) &&
-      utterance.start <= currentTimeMs && 
-      utterance.end >= currentTimeMs
     );
   };
 
@@ -197,7 +188,7 @@ export function TranscriptionPlayer({
         {showSubtitles && (
           <div className="w-full bg-gradient-to-t from-black/90 to-transparent">
             <div className="w-full px-4 py-6 space-y-2">
-              {getCurrentUtterances().map((utterance, index) => (
+              {getCurrentWords().map((utterance, index) => (
                 <div 
                   key={index}
                   className={cn(
@@ -207,7 +198,14 @@ export function TranscriptionPlayer({
                   )}
                 >
                   <span className="opacity-75">Speaker {utterance.speaker}:</span>{" "}
-                  {utterance.text}
+                  {utterance.words
+                    .filter(
+                      word => 
+                        word.start <= currentTime * 1000 && 
+                        word.end >= currentTime * 1000
+                    )
+                    .map(word => word.text)
+                    .join(" ")}
                 </div>
               ))}
             </div>
