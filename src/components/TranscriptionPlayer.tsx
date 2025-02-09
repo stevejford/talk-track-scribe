@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { TranscriptUtterance } from "@/types/assemblyai";
 import { Button } from "@/components/ui/button";
@@ -149,9 +150,6 @@ export function TranscriptionPlayer({
 
   const getSubtitleSize = () => {
     if (!isMobile) return "text-2xl";
-    if (videoAspectRatio < 1) {
-      return "text-4xl";
-    }
     return "text-xl";
   };
 
@@ -160,9 +158,9 @@ export function TranscriptionPlayer({
       {error && (
         <div className="p-4 bg-red-100 text-red-700 rounded-lg">{error}</div>
       )}
-      <div className="relative">
-        {isVideo ? (
-          <div className="relative aspect-video bg-black rounded-lg overflow-hidden w-full">
+      <div className="relative w-full bg-black rounded-lg overflow-hidden">
+        <div className="relative">
+          {isVideo ? (
             <video
               ref={mediaRef as React.RefObject<HTMLVideoElement>}
               src={mediaUrl}
@@ -170,45 +168,48 @@ export function TranscriptionPlayer({
               onLoadedMetadata={handleLoadedMetadata}
               onError={handleError}
               onEnded={() => setIsPlaying(false)}
-              className="w-full h-full object-contain"
+              className="w-full aspect-video object-contain"
               playsInline
               preload="auto"
             />
-            {showSubtitles && (
-              <div className="absolute bottom-16 left-0 right-0 flex flex-col items-center justify-center space-y-2 p-4">
-                {getCurrentWords().map((utterance, index) => (
-                  <div 
-                    key={index}
-                    className={cn(
-                      getSubtitleSize(),
-                      "font-semibold bg-black/75 px-4 py-2 rounded-lg animate-fade-in whitespace-nowrap",
-                      SPEAKER_COLORS[utterance.speaker]
-                    )}
-                  >
-                    <span className="opacity-75">Speaker {utterance.speaker}:</span>{" "}
-                    {utterance.words
-                      .filter(
-                        word => 
-                          word.start <= currentTime * 1000 && 
-                          word.end >= currentTime * 1000
-                      )
-                      .map(word => word.text)
-                      .join(" ")}
-                  </div>
-                ))}
-              </div>
-            )}
+          ) : (
+            <audio
+              ref={mediaRef as React.RefObject<HTMLAudioElement>}
+              src={mediaUrl}
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={handleLoadedMetadata}
+              onError={handleError}
+              onEnded={() => setIsPlaying(false)}
+              preload="auto"
+            />
+          )}
+        </div>
+        
+        {showSubtitles && (
+          <div className="w-full bg-gradient-to-t from-black/90 to-transparent">
+            <div className="w-full px-4 py-6 space-y-2">
+              {getCurrentWords().map((utterance, index) => (
+                <div 
+                  key={index}
+                  className={cn(
+                    getSubtitleSize(),
+                    "font-semibold px-4 py-2 rounded-lg animate-fade-in",
+                    SPEAKER_COLORS[utterance.speaker]
+                  )}
+                >
+                  <span className="opacity-75">Speaker {utterance.speaker}:</span>{" "}
+                  {utterance.words
+                    .filter(
+                      word => 
+                        word.start <= currentTime * 1000 && 
+                        word.end >= currentTime * 1000
+                    )
+                    .map(word => word.text)
+                    .join(" ")}
+                </div>
+              ))}
+            </div>
           </div>
-        ) : (
-          <audio
-            ref={mediaRef as React.RefObject<HTMLAudioElement>}
-            src={mediaUrl}
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={handleLoadedMetadata}
-            onError={handleError}
-            onEnded={() => setIsPlaying(false)}
-            preload="auto"
-          />
         )}
       </div>
 
