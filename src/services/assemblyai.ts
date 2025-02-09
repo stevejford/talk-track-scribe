@@ -1,4 +1,3 @@
-
 import { TranscriptionResult } from "@/types/assemblyai";
 
 const API_BASE_URL = "https://api.assemblyai.com/v2";
@@ -63,12 +62,12 @@ function isValidMediaType(mimeType: string): boolean {
   return mimeType.startsWith('audio/') || mimeType.startsWith('video/');
 }
 
-export async function startTranscription(audioUrl: string): Promise<string> {
-  console.log("Starting transcription...", { audioUrl });
+export async function startTranscription(audioUrl: string, speakersExpected: number = 2): Promise<string> {
+  console.log("Starting transcription...", { audioUrl, speakersExpected });
   const requestBody = {
     audio_url: audioUrl,
     speaker_labels: true,
-    speakers_expected: 8
+    speakers_expected: speakersExpected
   };
 
   console.log("Sending request with body:", requestBody);

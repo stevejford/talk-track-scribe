@@ -12,6 +12,8 @@ import {
 import { TranscriptionResult } from "@/types/assemblyai";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function Index() {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -20,6 +22,7 @@ export default function Index() {
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [result, setResult] = useState<TranscriptionResult | null>(null);
   const [selectedSpeakers, setSelectedSpeakers] = useState<Set<string>>(new Set());
+  const [speakersExpected, setSpeakersExpected] = useState(2);
   const { toast } = useToast();
 
   const handleFileSelected = async (file: File) => {
@@ -37,7 +40,7 @@ export default function Index() {
 
       // Start transcription
       setProgress(40);
-      const transcriptId = await startTranscription(uploadUrl);
+      const transcriptId = await startTranscription(uploadUrl, speakersExpected);
 
       // Poll for results
       let attempts = 0;
@@ -51,7 +54,6 @@ export default function Index() {
 
           if (result.status === "completed") {
             setResult(result);
-            // Initialize selected speakers with all speakers
             setSelectedSpeakers(new Set(result.utterances.map(u => u.speaker)));
             setProgress(100);
             setIsProcessing(false);
@@ -84,7 +86,7 @@ export default function Index() {
       setProgress(20);
       setMediaUrl(url);
 
-      const transcriptId = await startTranscription(url);
+      const transcriptId = await startTranscription(url, speakersExpected);
       setProgress(40);
 
       // Poll for results (same as in handleFileSelected)
@@ -148,11 +150,26 @@ export default function Index() {
         </div>
 
         <div className="p-6 bg-card rounded-lg shadow-lg space-y-6">
-          <MediaUploader
-            onFileSelected={handleFileSelected}
-            onUrlSubmitted={handleUrlSubmitted}
-            isProcessing={isProcessing}
-          />
+          <div className="space-y-4">
+            <div className="flex flex-col space-y-2">
+              <Label htmlFor="speakers">Expected Number of Speakers</Label>
+              <Input
+                id="speakers"
+                type="number"
+                min="1"
+                max="10"
+                value={speakersExpected}
+                onChange={(e) => setSpeakersExpected(Math.min(10, Math.max(1, parseInt(e.target.value) || 1)))}
+                disabled={isProcessing}
+                className="max-w-[200px]"
+              />
+            </div>
+            <MediaUploader
+              onFileSelected={handleFileSelected}
+              onUrlSubmitted={handleUrlSubmitted}
+              isProcessing={isProcessing}
+            />
+          </div>
 
           {isProcessing && (
             <div className="space-y-4">
