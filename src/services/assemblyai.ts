@@ -73,7 +73,7 @@ export async function startTranscription(audioUrl: string): Promise<string> {
     body: JSON.stringify({
       audio_url: audioUrl,
       speaker_labels: true,
-      speakers_expected: 2,
+      speakers_expected: 5, // Updated to expect 5 speakers
     }),
   });
 

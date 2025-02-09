@@ -20,6 +20,10 @@ const SPEAKER_COLORS: { [key: string]: string } = {
   B: "bg-green-100 text-green-800 border-green-200",
   C: "bg-purple-100 text-purple-800 border-purple-200",
   D: "bg-orange-100 text-orange-800 border-orange-200",
+  E: "bg-red-100 text-red-800 border-red-200",
+  F: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  G: "bg-pink-100 text-pink-800 border-pink-200",
+  H: "bg-indigo-100 text-indigo-800 border-indigo-200",
 };
 
 export function TranscriptionViewer({
