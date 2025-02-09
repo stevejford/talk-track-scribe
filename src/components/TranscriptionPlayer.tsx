@@ -33,7 +33,23 @@ export function TranscriptionPlayer({
   const [isMuted, setIsMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
-  const isVideo = mediaUrl.match(/\.(mp4|mov|webm|m4v)$/i);
+  const [isVideo, setIsVideo] = useState(false);
+
+  useEffect(() => {
+    // Create a temporary video element to check if the media is video
+    const videoCheck = document.createElement('video');
+    videoCheck.onloadedmetadata = () => {
+      setIsVideo(true);
+    };
+    videoCheck.onerror = () => {
+      setIsVideo(false);
+    };
+    videoCheck.src = mediaUrl;
+
+    return () => {
+      videoCheck.src = ''; // Cleanup
+    };
+  }, [mediaUrl]);
 
   useEffect(() => {
     if (mediaRef.current) {
