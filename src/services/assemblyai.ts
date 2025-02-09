@@ -67,10 +67,8 @@ export async function startTranscription(audioUrl: string): Promise<string> {
   console.log("Starting transcription...", { audioUrl });
   const requestBody = {
     audio_url: audioUrl,
-    speaker_detection: {
-      enable: true,
-      speakers_expected: 8
-    }
+    speaker_labels: true,
+    speakers_expected: 8
   };
 
   console.log("Sending request with body:", requestBody);
