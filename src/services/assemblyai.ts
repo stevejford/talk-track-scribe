@@ -53,7 +53,8 @@ function getMimeType(filename: string): string {
     'webm': 'video/webm',
     'ogg': 'audio/ogg',
     'oga': 'audio/ogg',
-    'ogv': 'video/ogg'
+    'ogv': 'video/ogg',
+    'm4v': 'video/mp4'
   };
   return mimeTypes[ext || ''] || 'audio/mpeg';
 }
@@ -73,7 +74,8 @@ export async function startTranscription(audioUrl: string): Promise<string> {
     body: JSON.stringify({
       audio_url: audioUrl,
       speaker_labels: true,
-      speakers_expected: 5, // Updated to expect 5 speakers
+      speakers_expected: 8, // Updated to expect up to 8 speakers
+      auto_detect_speakers: true, // Enable automatic speaker detection
     }),
   });
 

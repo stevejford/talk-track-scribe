@@ -32,7 +32,7 @@ export function TranscriptionPlayer({
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
-  const isVideo = mediaUrl.match(/\.(mp4|mov|webm)$/i);
+  const isVideo = mediaUrl.match(/\.(mp4|mov|webm|m4v)$/i);
 
   useEffect(() => {
     if (mediaRef.current) {
@@ -71,7 +71,7 @@ export function TranscriptionPlayer({
   const handleTimeUpdate = () => {
     if (mediaRef.current) {
       setCurrentTime(mediaRef.current.currentTime);
-      onTimeUpdate?.(mediaRef.current.currentTime * 1000);
+      onTimeUpdate?.(mediaRef.current.currentTime);
     }
   };
 
@@ -102,7 +102,7 @@ export function TranscriptionPlayer({
 
   return (
     <div className="space-y-4">
-      {isVideo && (
+      {isVideo ? (
         <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
           <video
             ref={mediaRef as React.RefObject<HTMLVideoElement>}
@@ -113,8 +113,7 @@ export function TranscriptionPlayer({
             className="w-full h-full object-contain"
           />
         </div>
-      )}
-      {!isVideo && (
+      ) : (
         <audio
           ref={mediaRef as React.RefObject<HTMLAudioElement>}
           src={mediaUrl}
