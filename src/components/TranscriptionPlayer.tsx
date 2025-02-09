@@ -63,7 +63,6 @@ export function TranscriptionPlayer({
       if (isPlaying) {
         mediaRef.current.pause();
       } else {
-        // Reset error state when trying to play
         setError(null);
         mediaRef.current.play().catch((e) => {
           console.error("Playback error:", e);
@@ -129,8 +128,10 @@ export function TranscriptionPlayer({
             onError={handleError}
             onEnded={() => setIsPlaying(false)}
             className="w-full h-full object-contain"
-            playsInline // Add playsInline for better mobile support
-            preload="metadata" // Preload metadata for faster loading
+            playsInline
+            controls={false}
+            preload="auto"
+            style={{ display: "block" }}
           />
         </div>
       ) : (
@@ -141,6 +142,7 @@ export function TranscriptionPlayer({
           onLoadedMetadata={handleLoadedMetadata}
           onError={handleError}
           onEnded={() => setIsPlaying(false)}
+          preload="auto"
         />
       )}
 
