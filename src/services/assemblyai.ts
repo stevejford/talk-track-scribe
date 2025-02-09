@@ -2,8 +2,13 @@
 import { TranscriptionResult } from "@/types/assemblyai";
 
 const API_BASE_URL = "https://api.assemblyai.com/v2";
+const API_KEY = import.meta.env.ASSEMBLYAI_API_KEY;
 
-export async function uploadAudio(file: File, apiKey: string): Promise<string> {
+if (!API_KEY) {
+  throw new Error('ASSEMBLYAI_API_KEY environment variable is not set');
+}
+
+export async function uploadAudio(file: File): Promise<string> {
   console.log("Starting audio upload...", { fileName: file.name, fileSize: file.size });
   
   // Get the correct MIME type and validate it
@@ -21,7 +26,7 @@ export async function uploadAudio(file: File, apiKey: string): Promise<string> {
   const response = await fetch(`${API_BASE_URL}/upload`, {
     method: "POST",
     headers: {
-      Authorization: apiKey,
+      Authorization: API_KEY,
     },
     body: formData,
   });
@@ -62,12 +67,12 @@ function isValidMediaType(mimeType: string): boolean {
   return mimeType.startsWith('audio/') || mimeType.startsWith('video/');
 }
 
-export async function startTranscription(audioUrl: string, apiKey: string): Promise<string> {
+export async function startTranscription(audioUrl: string): Promise<string> {
   console.log("Starting transcription...", { audioUrl });
   const response = await fetch(`${API_BASE_URL}/transcript`, {
     method: "POST",
     headers: {
-      Authorization: apiKey,
+      Authorization: API_KEY,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -92,11 +97,11 @@ export async function startTranscription(audioUrl: string, apiKey: string): Prom
   return id;
 }
 
-export async function getTranscriptionResult(id: string, apiKey: string): Promise<TranscriptionResult> {
+export async function getTranscriptionResult(id: string): Promise<TranscriptionResult> {
   console.log("Checking transcription status...", { id });
   const response = await fetch(`${API_BASE_URL}/transcript/${id}`, {
     headers: {
-      Authorization: apiKey,
+      Authorization: API_KEY,
       "Content-Type": "application/json",
     },
   });
