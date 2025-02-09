@@ -5,8 +5,16 @@ const API_BASE_URL = "https://api.assemblyai.com/v2";
 
 export async function uploadAudio(file: File, apiKey: string): Promise<string> {
   console.log("Starting audio upload...", { fileName: file.name, fileSize: file.size });
+  
+  // Create a new Blob with the correct MIME type
+  const audioBlob = new Blob([file], { 
+    type: file.type || getMimeType(file.name)
+  });
+  
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("file", audioBlob, file.name);
+
+  console.log("Uploading with MIME type:", audioBlob.type);
 
   const response = await fetch(`${API_BASE_URL}/upload`, {
     method: "POST",
@@ -29,6 +37,19 @@ export async function uploadAudio(file: File, apiKey: string): Promise<string> {
   const { upload_url } = await response.json();
   console.log("Upload successful, received URL:", upload_url);
   return upload_url;
+}
+
+function getMimeType(filename: string): string {
+  const ext = filename.toLowerCase().split('.').pop();
+  const mimeTypes: Record<string, string> = {
+    'mp3': 'audio/mpeg',
+    'wav': 'audio/wav',
+    'm4a': 'audio/mp4',
+    'flac': 'audio/flac',
+    'mp4': 'video/mp4',
+    'mov': 'video/quicktime'
+  };
+  return mimeTypes[ext || ''] || 'audio/mpeg';
 }
 
 export async function startTranscription(audioUrl: string, apiKey: string): Promise<string> {
