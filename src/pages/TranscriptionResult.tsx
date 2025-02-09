@@ -3,13 +3,13 @@ import { useLocation } from "react-router-dom";
 import { TranscriptionPlayer } from "@/components/TranscriptionPlayer";
 import { TranscriptionViewer } from "@/components/TranscriptionViewer";
 import { useState } from "react";
-import { TranscriptionResult } from "@/types/assemblyai";
+import type { TranscriptionResult as TranscriptionResultType } from "@/types/assemblyai";
 
 export default function TranscriptionResult() {
   const location = useLocation();
   const { mediaUrl, result } = location.state as {
     mediaUrl: string;
-    result: TranscriptionResult;
+    result: TranscriptionResultType;
   };
   const [currentTime, setCurrentTime] = useState(0);
   const [selectedSpeakers, setSelectedSpeakers] = useState<Set<string>>(
