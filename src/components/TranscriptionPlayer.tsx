@@ -119,7 +119,7 @@ export function TranscriptionPlayer({
         <div className="p-4 bg-red-100 text-red-700 rounded-lg">{error}</div>
       )}
       {isVideo ? (
-        <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+        <div className="relative aspect-video bg-black rounded-lg overflow-hidden w-full">
           <video
             ref={mediaRef as React.RefObject<HTMLVideoElement>}
             src={mediaUrl}
@@ -129,9 +129,7 @@ export function TranscriptionPlayer({
             onEnded={() => setIsPlaying(false)}
             className="w-full h-full object-contain"
             playsInline
-            controls={false}
             preload="auto"
-            style={{ display: "block" }}
           />
         </div>
       ) : (
