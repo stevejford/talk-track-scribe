@@ -1,103 +1,72 @@
 
 import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MediaUploader } from "@/components/MediaUploader";
+import { TranscriptionPlayer } from "@/components/TranscriptionPlayer";
+import { TranscriptionViewer } from "@/components/TranscriptionViewer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
+import { Progress } from "@/components/ui/progress";
 import {
   uploadAudio,
   startTranscription,
   getTranscriptionResult,
 } from "@/services/assemblyai";
-import { type TranscriptionResult } from "@/types/assemblyai";
-import { useToast } from "@/components/ui/use-toast";
-import { MediaInputSection } from "@/components/MediaInputSection";
-import { ResultsSection } from "@/components/ResultsSection";
-import { LibrarySection } from "@/components/LibrarySection";
-
-interface SavedSession {
-  id: string;
-  title: string;
-  date: string;
-  mediaUrl: string;
-  transcriptionResult: TranscriptionResult;
-  thumbnail?: string;
-}
+import { TranscriptionResult } from "@/types/assemblyai";
+import { Loader2 } from "lucide-react";
 
 export default function Index() {
+  const [apiKey, setApiKey] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
   const [progress, setProgress] = useState(0);
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
-  const [speakersExpected, setSpeakersExpected] = useState(2);
-  const [transcriptionResult, setTranscriptionResult] = useState<TranscriptionResult | null>(null);
+  const [result, setResult] = useState<TranscriptionResult | null>(null);
   const [selectedSpeakers, setSelectedSpeakers] = useState<Set<string>>(new Set());
-  const [sessionTitle, setSessionTitle] = useState("");
-  const [savedSessions, setSavedSessions] = useState<SavedSession[]>(() => {
-    const saved = localStorage.getItem("savedSessions");
-    return saved ? JSON.parse(saved) : [];
-  });
   const { toast } = useToast();
 
-  const saveSession = () => {
-    if (!mediaUrl || !transcriptionResult || !sessionTitle.trim()) {
+  const handleFileSelected = async (file: File) => {
+    if (!apiKey) {
       toast({
-        title: "Cannot Save Session",
-        description: "Please ensure you have a title and completed transcription.",
+        title: "API Key Required",
+        description: "Please enter your AssemblyAI API key first.",
         variant: "destructive",
       });
       return;
     }
 
-    const newSession: SavedSession = {
-      id: Date.now().toString(),
-      title: sessionTitle,
-      date: new Date().toISOString(),
-      mediaUrl,
-      transcriptionResult,
-    };
-
-    const updatedSessions = [...savedSessions, newSession];
-    setSavedSessions(updatedSessions);
-    localStorage.setItem("savedSessions", JSON.stringify(updatedSessions));
-
-    toast({
-      title: "Session Saved",
-      description: "Your transcription has been saved to the library.",
-    });
-  };
-
-  const loadSession = (session: SavedSession) => {
-    setMediaUrl(session.mediaUrl);
-    setTranscriptionResult(session.transcriptionResult);
-    setSessionTitle(session.title);
-    setSelectedSpeakers(new Set(session.transcriptionResult.utterances.map((u) => u.speaker)));
-  };
-
-  const handleFileSelected = async (file: File) => {
     try {
       setIsProcessing(true);
       setProgress(0);
 
+      // Create local media URL for playback
       const localMediaUrl = URL.createObjectURL(file);
       setMediaUrl(localMediaUrl);
 
+      // Upload the file
       setProgress(20);
-      const uploadUrl = await uploadAudio(file);
+      const uploadUrl = await uploadAudio(file, apiKey);
 
+      // Start transcription
       setProgress(40);
-      const transcriptId = await startTranscription(uploadUrl, speakersExpected);
+      const transcriptId = await startTranscription(uploadUrl, apiKey);
 
+      // Poll for results
       let attempts = 0;
-      const maxAttempts = 60;
-      const pollInterval = 5000;
+      const maxAttempts = 60; // 5 minutes maximum
+      const pollInterval = 5000; // 5 seconds
 
       const pollResult = async () => {
         try {
-          const result = await getTranscriptionResult(transcriptId);
+          const result = await getTranscriptionResult(transcriptId, apiKey);
           setProgress(60 + (attempts / maxAttempts) * 40);
 
           if (result.status === "completed") {
+            setResult(result);
+            // Initialize selected speakers with all speakers
+            setSelectedSpeakers(new Set(result.utterances.map(u => u.speaker)));
             setProgress(100);
             setIsProcessing(false);
-            setTranscriptionResult(result);
-            setSelectedSpeakers(new Set(result.utterances.map((u) => u.speaker)));
             toast({
               title: "Transcription Complete",
               description: "Your media has been successfully transcribed.",
@@ -122,28 +91,38 @@ export default function Index() {
   };
 
   const handleUrlSubmitted = async (url: string) => {
+    if (!apiKey) {
+      toast({
+        title: "API Key Required",
+        description: "Please enter your AssemblyAI API key first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsProcessing(true);
       setProgress(20);
       setMediaUrl(url);
 
-      const transcriptId = await startTranscription(url, speakersExpected);
+      const transcriptId = await startTranscription(url, apiKey);
       setProgress(40);
 
+      // Poll for results (same as in handleFileSelected)
       let attempts = 0;
       const maxAttempts = 60;
       const pollInterval = 5000;
 
       const pollResult = async () => {
         try {
-          const result = await getTranscriptionResult(transcriptId);
+          const result = await getTranscriptionResult(transcriptId, apiKey);
           setProgress(60 + (attempts / maxAttempts) * 40);
 
           if (result.status === "completed") {
+            setResult(result);
+            setSelectedSpeakers(new Set(result.utterances.map(u => u.speaker)));
             setProgress(100);
             setIsProcessing(false);
-            setTranscriptionResult(result);
-            setSelectedSpeakers(new Set(result.utterances.map((u) => u.speaker)));
             toast({
               title: "Transcription Complete",
               description: "Your media has been successfully transcribed.",
@@ -189,45 +168,71 @@ export default function Index() {
           </p>
         </div>
 
-        <Tabs defaultValue="upload" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="upload">Upload</TabsTrigger>
-            <TabsTrigger value="results" disabled={!transcriptionResult}>Results</TabsTrigger>
-            <TabsTrigger value="library">Library</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="upload">
-            <MediaInputSection
-              isProcessing={isProcessing}
-              progress={progress}
-              speakersExpected={speakersExpected}
-              onSpeakersChange={setSpeakersExpected}
-              onFileSelected={handleFileSelected}
-              onUrlSubmitted={handleUrlSubmitted}
+        <div className="p-6 bg-card rounded-lg shadow-lg space-y-6">
+          <div className="space-y-2">
+            <label
+              htmlFor="apiKey"
+              className="text-sm font-medium text-muted-foreground"
+            >
+              AssemblyAI API Key
+            </label>
+            <Input
+              id="apiKey"
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Enter your API key..."
+              className="font-mono"
             />
-          </TabsContent>
+          </div>
 
-          <TabsContent value="results" className="space-y-8">
-            {transcriptionResult && mediaUrl && (
-              <ResultsSection
-                mediaUrl={mediaUrl}
-                transcriptionResult={transcriptionResult}
-                sessionTitle={sessionTitle}
-                onSessionTitleChange={setSessionTitle}
-                onSaveSession={saveSession}
-                selectedSpeakers={selectedSpeakers}
-                onSelectedSpeakersChange={setSelectedSpeakers}
-              />
-            )}
-          </TabsContent>
+          <MediaUploader
+            onFileSelected={handleFileSelected}
+            onUrlSubmitted={handleUrlSubmitted}
+            isProcessing={isProcessing}
+          />
 
-          <TabsContent value="library">
-            <LibrarySection
-              savedSessions={savedSessions}
-              onLoadSession={loadSession}
+          {isProcessing && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-center space-x-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="text-sm font-medium">Processing media...</span>
+              </div>
+              <Progress value={progress} />
+            </div>
+          )}
+        </div>
+
+        {mediaUrl && result?.utterances && (
+          <div className="space-y-8">
+            <TranscriptionPlayer
+              mediaUrl={mediaUrl}
+              utterances={result.utterances}
+              onTimeUpdate={setCurrentTime}
+              selectedSpeakers={selectedSpeakers}
             />
-          </TabsContent>
-        </Tabs>
+            <TranscriptionViewer
+              utterances={result.utterances}
+              currentTime={currentTime}
+              onUtteranceClick={(time) => {
+                const mediaElement = document.querySelector("video, audio");
+                if (mediaElement) {
+                  (mediaElement as HTMLMediaElement).currentTime = time / 1000;
+                }
+              }}
+              selectedSpeakers={selectedSpeakers}
+              onSpeakerToggle={(speaker) => {
+                const newSelectedSpeakers = new Set(selectedSpeakers);
+                if (newSelectedSpeakers.has(speaker)) {
+                  newSelectedSpeakers.delete(speaker);
+                } else {
+                  newSelectedSpeakers.add(speaker);
+                }
+                setSelectedSpeakers(newSelectedSpeakers);
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -3,7 +3,6 @@ import { useState, useRef, useEffect } from "react";
 import { TranscriptUtterance } from "@/types/assemblyai";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Play,
   Pause,
@@ -11,9 +10,6 @@ import {
   SkipForward,
   Volume2,
   VolumeX,
-  Ear,
-  EarOff,
-  Subtitles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,19 +19,6 @@ interface TranscriptionPlayerProps {
   onTimeUpdate?: (time: number) => void;
   selectedSpeakers?: Set<string>;
 }
-
-const SPEAKER_COLORS: { [key: string]: string } = {
-  A: "text-blue-500",
-  B: "text-green-500",
-  C: "text-purple-500",
-  D: "text-orange-500",
-  E: "text-red-500",
-  F: "text-yellow-500",
-  G: "text-pink-500",
-  H: "text-indigo-500",
-  I: "text-violet-500",
-  J: "text-teal-500",
-};
 
 export function TranscriptionPlayer({
   mediaUrl,
@@ -48,29 +31,8 @@ export function TranscriptionPlayer({
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [originalSound, setOriginalSound] = useState(true);
-  const [showSubtitles, setShowSubtitles] = useState(true);
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
-  const [isVideo, setIsVideo] = useState(false);
-  const [videoAspectRatio, setVideoAspectRatio] = useState<number>(16/9);
-  const isMobile = useIsMobile();
-
-  useEffect(() => {
-    const videoCheck = document.createElement('video');
-    videoCheck.onloadedmetadata = () => {
-      setIsVideo(true);
-      setVideoAspectRatio(videoCheck.videoWidth / videoCheck.videoHeight);
-    };
-    videoCheck.onerror = () => {
-      setIsVideo(false);
-    };
-    videoCheck.src = mediaUrl;
-
-    return () => {
-      videoCheck.src = '';
-    };
-  }, [mediaUrl]);
+  const isVideo = mediaUrl.match(/\.(mp4|mov)$/i);
 
   useEffect(() => {
     if (mediaRef.current) {
@@ -78,39 +40,29 @@ export function TranscriptionPlayer({
     }
   }, [volume]);
 
-  const getCurrentWords = () => {
-    if (!utterances) return [];
-    const currentTimeMs = currentTime * 1000;
-    return utterances.filter(utterance => 
-      selectedSpeakers?.has(utterance.speaker) &&
-      utterance.words.some(word => 
-        word.start <= currentTimeMs && 
-        word.end >= currentTimeMs
-      )
-    );
-  };
+  useEffect(() => {
+    if (!mediaRef.current || !utterances || !selectedSpeakers) return;
 
-  const getCurrentUtterances = () => {
-    if (!utterances) return [];
-    const currentTimeMs = currentTime * 1000;
-    return utterances.filter(utterance => 
-      selectedSpeakers?.has(utterance.speaker) &&
-      utterance.start <= currentTimeMs && 
-      utterance.end >= currentTimeMs
+    const currentUtterance = utterances.find(
+      (u) =>
+        currentTime * 1000 >= u.start &&
+        currentTime * 1000 <= u.end &&
+        selectedSpeakers.has(u.speaker)
     );
-  };
+
+    if (!currentUtterance) {
+      mediaRef.current.volume = 0;
+    } else {
+      mediaRef.current.volume = volume;
+    }
+  }, [currentTime, utterances, selectedSpeakers, volume]);
 
   const togglePlay = () => {
     if (mediaRef.current) {
       if (isPlaying) {
         mediaRef.current.pause();
       } else {
-        setError(null);
-        mediaRef.current.play().catch((e) => {
-          console.error("Playback error:", e);
-          setError("Failed to play media. Please try again.");
-          setIsPlaying(false);
-        });
+        mediaRef.current.play();
       }
       setIsPlaying(!isPlaying);
     }
@@ -119,7 +71,7 @@ export function TranscriptionPlayer({
   const handleTimeUpdate = () => {
     if (mediaRef.current) {
       setCurrentTime(mediaRef.current.currentTime);
-      onTimeUpdate?.(mediaRef.current.currentTime);
+      onTimeUpdate?.(mediaRef.current.currentTime * 1000);
     }
   };
 
@@ -127,12 +79,6 @@ export function TranscriptionPlayer({
     if (mediaRef.current) {
       setDuration(mediaRef.current.duration);
     }
-  };
-
-  const handleError = (e: any) => {
-    console.error("Media error:", e);
-    setError("Error loading media. Please check the file format and try again.");
-    setIsPlaying(false);
   };
 
   const skipTime = (seconds: number) => {
@@ -148,77 +94,40 @@ export function TranscriptionPlayer({
     }
   };
 
-  const toggleOriginalSound = () => {
-    setOriginalSound(!originalSound);
-  };
-
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  const getSubtitleSize = () => {
-    if (!isMobile) return "text-2xl";
-    return "text-xl";
-  };
-
   return (
     <div className="space-y-4">
-      {error && (
-        <div className="p-4 bg-red-100 text-red-700 rounded-lg">{error}</div>
-      )}
-      <div className="relative w-full bg-black rounded-lg overflow-hidden">
-        <div className="relative">
-          {isVideo ? (
-            <video
-              ref={mediaRef as React.RefObject<HTMLVideoElement>}
-              src={mediaUrl}
-              onTimeUpdate={handleTimeUpdate}
-              onLoadedMetadata={handleLoadedMetadata}
-              onError={handleError}
-              onEnded={() => setIsPlaying(false)}
-              className="w-full aspect-video object-contain"
-              playsInline
-              preload="auto"
-            />
-          ) : (
-            <audio
-              ref={mediaRef as React.RefObject<HTMLAudioElement>}
-              src={mediaUrl}
-              onTimeUpdate={handleTimeUpdate}
-              onLoadedMetadata={handleLoadedMetadata}
-              onError={handleError}
-              onEnded={() => setIsPlaying(false)}
-              preload="auto"
-            />
-          )}
-        </div>
+      <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+        {isVideo ? (
+          <video
+            ref={mediaRef as React.RefObject<HTMLVideoElement>}
+            src={mediaUrl}
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={handleLoadedMetadata}
+            onEnded={() => setIsPlaying(false)}
+            className="w-full h-full"
+          />
+        ) : (
+          <audio
+            ref={mediaRef as React.RefObject<HTMLAudioElement>}
+            src={mediaUrl}
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={handleLoadedMetadata}
+            onEnded={() => setIsPlaying(false)}
+          />
+        )}
       </div>
-
-      {showSubtitles && (
-        <div className="w-full bg-black/90 rounded-lg overflow-hidden">
-          <div className="w-full px-4 py-6 space-y-2">
-            {getCurrentUtterances().map((utterance, index) => (
-              <div 
-                key={index}
-                className={cn(
-                  getSubtitleSize(),
-                  "font-semibold px-4 py-2 rounded-lg animate-fade-in break-words whitespace-pre-wrap",
-                  SPEAKER_COLORS[utterance.speaker]
-                )}
-              >
-                <span className="opacity-75">Speaker {utterance.speaker}:</span>{" "}
-                {utterance.text}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div className="p-4 bg-card rounded-lg shadow-lg space-y-4">
         <div className="flex items-center justify-between space-x-4">
-          <span className="text-sm font-medium">{formatTime(currentTime)}</span>
+          <span className="text-sm font-medium">
+            {formatTime(currentTime)}
+          </span>
           <Slider
             value={[currentTime]}
             max={duration}
@@ -230,7 +139,9 @@ export function TranscriptionPlayer({
             }}
             className="w-full"
           />
-          <span className="text-sm font-medium">{formatTime(duration)}</span>
+          <span className="text-sm font-medium">
+            {formatTime(duration)}
+          </span>
         </div>
 
         <div className="flex items-center justify-center space-x-4">
@@ -268,58 +179,25 @@ export function TranscriptionPlayer({
           </Button>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleMute}
-              className="hover:bg-primary/10"
-            >
-              {isMuted ? (
-                <VolumeX className="h-5 w-5" />
-              ) : (
-                <Volume2 className="h-5 w-5" />
-              )}
-            </Button>
-            <Slider
-              value={[volume * 100]}
-              max={100}
-              onValueChange={(value) => setVolume(value[0] / 100)}
-              className="w-24"
-            />
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Button
-              variant={showSubtitles ? "default" : "ghost"}
-              onClick={() => setShowSubtitles(!showSubtitles)}
-              className="space-x-2"
-              size="sm"
-            >
-              <Subtitles className="h-4 w-4" />
-              <span>{showSubtitles ? "Hide Subtitles" : "Show Subtitles"}</span>
-            </Button>
-            
-            <Button
-              variant={originalSound ? "default" : "ghost"}
-              onClick={toggleOriginalSound}
-              className="space-x-2"
-              size="sm"
-            >
-              {originalSound ? (
-                <>
-                  <Ear className="h-4 w-4" />
-                  <span>Original Audio</span>
-                </>
-              ) : (
-                <>
-                  <EarOff className="h-4 w-4" />
-                  <span>Filtered Audio</span>
-                </>
-              )}
-            </Button>
-          </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleMute}
+            className="hover:bg-primary/10"
+          >
+            {isMuted ? (
+              <VolumeX className="h-5 w-5" />
+            ) : (
+              <Volume2 className="h-5 w-5" />
+            )}
+          </Button>
+          <Slider
+            value={[volume * 100]}
+            max={100}
+            onValueChange={(value) => setVolume(value[0] / 100)}
+            className="w-24"
+          />
         </div>
       </div>
     </div>
