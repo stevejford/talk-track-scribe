@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { AudioUploader } from "@/components/AudioUploader";
+import { MediaUploader } from "@/components/MediaUploader";
 import { TranscriptionPlayer } from "@/components/TranscriptionPlayer";
 import { TranscriptionViewer } from "@/components/TranscriptionViewer";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,9 @@ export default function Index() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [result, setResult] = useState<TranscriptionResult | null>(null);
+  const [selectedSpeakers, setSelectedSpeakers] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   const handleFileSelected = async (file: File) => {
@@ -38,9 +39,9 @@ export default function Index() {
       setIsProcessing(true);
       setProgress(0);
 
-      // Create local audio URL for playback
-      const localAudioUrl = URL.createObjectURL(file);
-      setAudioUrl(localAudioUrl);
+      // Create local media URL for playback
+      const localMediaUrl = URL.createObjectURL(file);
+      setMediaUrl(localMediaUrl);
 
       // Upload the file
       setProgress(20);
@@ -62,11 +63,13 @@ export default function Index() {
 
           if (result.status === "completed") {
             setResult(result);
+            // Initialize selected speakers with all speakers
+            setSelectedSpeakers(new Set(result.utterances.map(u => u.speaker)));
             setProgress(100);
             setIsProcessing(false);
             toast({
               title: "Transcription Complete",
-              description: "Your audio has been successfully transcribed.",
+              description: "Your media has been successfully transcribed.",
             });
           } else if (result.status === "error") {
             throw new Error("Transcription failed");
@@ -100,7 +103,7 @@ export default function Index() {
     try {
       setIsProcessing(true);
       setProgress(20);
-      setAudioUrl(url);
+      setMediaUrl(url);
 
       const transcriptId = await startTranscription(url, apiKey);
       setProgress(40);
@@ -117,11 +120,12 @@ export default function Index() {
 
           if (result.status === "completed") {
             setResult(result);
+            setSelectedSpeakers(new Set(result.utterances.map(u => u.speaker)));
             setProgress(100);
             setIsProcessing(false);
             toast({
               title: "Transcription Complete",
-              description: "Your audio has been successfully transcribed.",
+              description: "Your media has been successfully transcribed.",
             });
           } else if (result.status === "error") {
             throw new Error("Transcription failed");
@@ -157,10 +161,10 @@ export default function Index() {
       <div className="space-y-8">
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold tracking-tight">
-            Audio Speaker Analysis
+            Media Speaker Analysis
           </h1>
           <p className="text-lg text-muted-foreground">
-            Upload your audio file to identify and analyze different speakers
+            Upload your audio or video file to identify and analyze different speakers
           </p>
         </div>
 
@@ -182,7 +186,7 @@ export default function Index() {
             />
           </div>
 
-          <AudioUploader
+          <MediaUploader
             onFileSelected={handleFileSelected}
             onUrlSubmitted={handleUrlSubmitted}
             isProcessing={isProcessing}
@@ -192,28 +196,39 @@ export default function Index() {
             <div className="space-y-4">
               <div className="flex items-center justify-center space-x-2">
                 <Loader2 className="h-5 w-5 animate-spin" />
-                <span className="text-sm font-medium">Processing audio...</span>
+                <span className="text-sm font-medium">Processing media...</span>
               </div>
               <Progress value={progress} />
             </div>
           )}
         </div>
 
-        {audioUrl && result?.utterances && (
+        {mediaUrl && result?.utterances && (
           <div className="space-y-8">
             <TranscriptionPlayer
-              audioUrl={audioUrl}
+              mediaUrl={mediaUrl}
               utterances={result.utterances}
               onTimeUpdate={setCurrentTime}
+              selectedSpeakers={selectedSpeakers}
             />
             <TranscriptionViewer
               utterances={result.utterances}
               currentTime={currentTime}
               onUtteranceClick={(time) => {
-                const audioElement = document.querySelector("audio");
-                if (audioElement) {
-                  audioElement.currentTime = time / 1000;
+                const mediaElement = document.querySelector("video, audio");
+                if (mediaElement) {
+                  (mediaElement as HTMLMediaElement).currentTime = time / 1000;
                 }
+              }}
+              selectedSpeakers={selectedSpeakers}
+              onSpeakerToggle={(speaker) => {
+                const newSelectedSpeakers = new Set(selectedSpeakers);
+                if (newSelectedSpeakers.has(speaker)) {
+                  newSelectedSpeakers.delete(speaker);
+                } else {
+                  newSelectedSpeakers.add(speaker);
+                }
+                setSelectedSpeakers(newSelectedSpeakers);
               }}
             />
           </div>

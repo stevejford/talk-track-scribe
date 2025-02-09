@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-interface AudioUploaderProps {
+interface MediaUploaderProps {
   onFileSelected: (file: File) => void;
   onUrlSubmitted: (url: string) => void;
   isProcessing: boolean;
 }
 
-export function AudioUploader({ onFileSelected, onUrlSubmitted, isProcessing }: AudioUploaderProps) {
+export function MediaUploader({ onFileSelected, onUrlSubmitted, isProcessing }: MediaUploaderProps) {
   const [url, setUrl] = useState("");
 
   const onDrop = useCallback(
@@ -27,7 +27,8 @@ export function AudioUploader({ onFileSelected, onUrlSubmitted, isProcessing }: 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'audio/*': ['.mp3', '.wav', '.m4a', '.flac']
+      'audio/*': ['.mp3', '.wav', '.m4a', '.flac'],
+      'video/*': ['.mp4', '.mov']
     },
     disabled: isProcessing,
     maxFiles: 1,
@@ -56,10 +57,10 @@ export function AudioUploader({ onFileSelected, onUrlSubmitted, isProcessing }: 
           <Upload className="w-12 h-12 text-muted-foreground" />
           <div className="space-y-2">
             <p className="text-lg font-medium">
-              {isDragActive ? "Drop your audio file here" : "Drag & drop your audio file"}
+              {isDragActive ? "Drop your media file here" : "Drag & drop your audio/video file"}
             </p>
             <p className="text-sm text-muted-foreground">
-              or click to select a file from your computer
+              Supported formats: MP3, WAV, M4A, FLAC, MP4, MOV
             </p>
           </div>
         </div>
@@ -78,7 +79,7 @@ export function AudioUploader({ onFileSelected, onUrlSubmitted, isProcessing }: 
         <form onSubmit={handleUrlSubmit} className="flex space-x-2">
           <Input
             type="url"
-            placeholder="Enter audio URL..."
+            placeholder="Enter media URL..."
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             disabled={isProcessing}

@@ -9,6 +9,8 @@ interface TranscriptionViewerProps {
   utterances: TranscriptUtterance[];
   currentTime: number;
   onUtteranceClick: (start: number) => void;
+  selectedSpeakers: Set<string>;
+  onSpeakerToggle: (speaker: string) => void;
 }
 
 const SPEAKER_COLORS: { [key: string]: string } = {
@@ -22,21 +24,9 @@ export function TranscriptionViewer({
   utterances,
   currentTime,
   onUtteranceClick,
+  selectedSpeakers,
+  onSpeakerToggle,
 }: TranscriptionViewerProps) {
-  const [selectedSpeakers, setSelectedSpeakers] = useState<Set<string>>(
-    new Set(utterances.map((u) => u.speaker))
-  );
-
-  const toggleSpeaker = (speaker: string) => {
-    const newSelected = new Set(selectedSpeakers);
-    if (newSelected.has(speaker)) {
-      newSelected.delete(speaker);
-    } else {
-      newSelected.add(speaker);
-    }
-    setSelectedSpeakers(newSelected);
-  };
-
   const speakers = Array.from(new Set(utterances.map((u) => u.speaker))).sort();
 
   return (
@@ -52,7 +42,7 @@ export function TranscriptionViewer({
                 ? SPEAKER_COLORS[speaker]
                 : "opacity-50"
             )}
-            onClick={() => toggleSpeaker(speaker)}
+            onClick={() => onSpeakerToggle(speaker)}
           >
             Speaker {speaker}
           </Badge>
@@ -68,7 +58,7 @@ export function TranscriptionViewer({
                 key={index}
                 className={cn(
                   "p-4 rounded-lg transition-colors cursor-pointer hover:bg-accent",
-                  currentTime >= utterance.start && currentTime <= utterance.end
+                  currentTime * 1000 >= utterance.start && currentTime * 1000 <= utterance.end
                     ? "bg-accent"
                     : "bg-card",
                   SPEAKER_COLORS[utterance.speaker]
