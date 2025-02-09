@@ -31,6 +31,7 @@ export function TranscriptionPlayer({
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
   const isVideo = mediaUrl.match(/\.(mp4|mov|webm|m4v)$/i);
 
@@ -62,7 +63,13 @@ export function TranscriptionPlayer({
       if (isPlaying) {
         mediaRef.current.pause();
       } else {
-        mediaRef.current.play();
+        // Reset error state when trying to play
+        setError(null);
+        mediaRef.current.play().catch((e) => {
+          console.error("Playback error:", e);
+          setError("Failed to play media. Please try again.");
+          setIsPlaying(false);
+        });
       }
       setIsPlaying(!isPlaying);
     }
@@ -77,8 +84,15 @@ export function TranscriptionPlayer({
 
   const handleLoadedMetadata = () => {
     if (mediaRef.current) {
+      console.log("Media loaded, duration:", mediaRef.current.duration);
       setDuration(mediaRef.current.duration);
     }
+  };
+
+  const handleError = (e: any) => {
+    console.error("Media error:", e);
+    setError("Error loading media. Please check the file format and try again.");
+    setIsPlaying(false);
   };
 
   const skipTime = (seconds: number) => {
@@ -102,6 +116,9 @@ export function TranscriptionPlayer({
 
   return (
     <div className="space-y-4">
+      {error && (
+        <div className="p-4 bg-red-100 text-red-700 rounded-lg">{error}</div>
+      )}
       {isVideo ? (
         <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
           <video
@@ -109,8 +126,11 @@ export function TranscriptionPlayer({
             src={mediaUrl}
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
+            onError={handleError}
             onEnded={() => setIsPlaying(false)}
             className="w-full h-full object-contain"
+            playsInline // Add playsInline for better mobile support
+            preload="metadata" // Preload metadata for faster loading
           />
         </div>
       ) : (
@@ -119,6 +139,7 @@ export function TranscriptionPlayer({
           src={mediaUrl}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
+          onError={handleError}
           onEnded={() => setIsPlaying(false)}
         />
       )}
