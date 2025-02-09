@@ -224,38 +224,48 @@ export function TranscriptionPlayer({
           </Button>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleMute}
-            className="hover:bg-primary/10"
-          >
-            {isMuted ? (
-              <VolumeX className="h-5 w-5" />
-            ) : (
-              <Volume2 className="h-5 w-5" />
-            )}
-          </Button>
-          <Slider
-            value={[volume * 100]}
-            max={100}
-            onValueChange={(value) => setVolume(value[0] / 100)}
-            className="w-24"
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleOriginalSound}
-            className="hover:bg-primary/10"
-            title={originalSound ? "Turn off original sound" : "Turn on original sound"}
-          >
-            {originalSound ? (
-              <Ear className="h-5 w-5" />
-            ) : (
-              <EarOff className="h-5 w-5" />
-            )}
-          </Button>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleMute}
+              className="hover:bg-primary/10"
+            >
+              {isMuted ? (
+                <VolumeX className="h-5 w-5" />
+              ) : (
+                <Volume2 className="h-5 w-5" />
+              )}
+            </Button>
+            <Slider
+              value={[volume * 100]}
+              max={100}
+              onValueChange={(value) => setVolume(value[0] / 100)}
+              className="w-24"
+            />
+          </div>
+          
+          <div className="flex items-center space-x-2 bg-accent/50 rounded-lg px-3 py-1">
+            <Button
+              variant={originalSound ? "default" : "ghost"}
+              onClick={toggleOriginalSound}
+              className="space-x-2"
+              size="sm"
+            >
+              {originalSound ? (
+                <>
+                  <Ear className="h-4 w-4" />
+                  <span>Original Audio</span>
+                </>
+              ) : (
+                <>
+                  <EarOff className="h-4 w-4" />
+                  <span>Filtered Audio</span>
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
