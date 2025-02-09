@@ -82,5 +82,11 @@ export async function getTranscriptionResult(id: string, apiKey: string): Promis
 
   const result = await response.json();
   console.log("Received transcription status:", result.status);
+  
+  if (result.status === "error") {
+    console.error("Transcription failed:", result.error);
+    throw new Error(`Transcription failed: ${result.error || 'Unknown error occurred'}`);
+  }
+  
   return result;
 }
