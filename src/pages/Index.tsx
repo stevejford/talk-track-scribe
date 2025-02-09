@@ -1,8 +1,7 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { MediaUploader } from "@/components/MediaUploader";
-import { TranscriptionPlayer } from "@/components/TranscriptionPlayer";
-import { TranscriptionViewer } from "@/components/TranscriptionViewer";
 import { Progress } from "@/components/ui/progress";
 import {
   uploadAudio,
@@ -17,35 +16,29 @@ import { Label } from "@/components/ui/label";
 
 export default function Index() {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
   const [progress, setProgress] = useState(0);
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
-  const [result, setResult] = useState<TranscriptionResult | null>(null);
-  const [selectedSpeakers, setSelectedSpeakers] = useState<Set<string>>(new Set());
   const [speakersExpected, setSpeakersExpected] = useState(2);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleFileSelected = async (file: File) => {
     try {
       setIsProcessing(true);
       setProgress(0);
 
-      // Create local media URL for playback
       const localMediaUrl = URL.createObjectURL(file);
       setMediaUrl(localMediaUrl);
 
-      // Upload the file
       setProgress(20);
       const uploadUrl = await uploadAudio(file);
 
-      // Start transcription
       setProgress(40);
       const transcriptId = await startTranscription(uploadUrl, speakersExpected);
 
-      // Poll for results
       let attempts = 0;
-      const maxAttempts = 60; // 5 minutes maximum
-      const pollInterval = 5000; // 5 seconds
+      const maxAttempts = 60;
+      const pollInterval = 5000;
 
       const pollResult = async () => {
         try {
@@ -53,14 +46,14 @@ export default function Index() {
           setProgress(60 + (attempts / maxAttempts) * 40);
 
           if (result.status === "completed") {
-            setResult(result);
-            setSelectedSpeakers(new Set(result.utterances.map(u => u.speaker)));
             setProgress(100);
             setIsProcessing(false);
             toast({
               title: "Transcription Complete",
               description: "Your media has been successfully transcribed.",
             });
+            // Navigate to result page
+            navigate("/result", { state: { mediaUrl: localMediaUrl, result } });
           } else if (result.status === "error") {
             throw new Error("Transcription failed");
           } else if (attempts < maxAttempts) {
@@ -89,7 +82,6 @@ export default function Index() {
       const transcriptId = await startTranscription(url, speakersExpected);
       setProgress(40);
 
-      // Poll for results (same as in handleFileSelected)
       let attempts = 0;
       const maxAttempts = 60;
       const pollInterval = 5000;
@@ -100,14 +92,14 @@ export default function Index() {
           setProgress(60 + (attempts / maxAttempts) * 40);
 
           if (result.status === "completed") {
-            setResult(result);
-            setSelectedSpeakers(new Set(result.utterances.map(u => u.speaker)));
             setProgress(100);
             setIsProcessing(false);
             toast({
               title: "Transcription Complete",
               description: "Your media has been successfully transcribed.",
             });
+            // Navigate to result page
+            navigate("/result", { state: { mediaUrl: url, result } });
           } else if (result.status === "error") {
             throw new Error("Transcription failed");
           } else if (attempts < maxAttempts) {
@@ -181,37 +173,6 @@ export default function Index() {
             </div>
           )}
         </div>
-
-        {mediaUrl && result?.utterances && (
-          <div className="space-y-8">
-            <TranscriptionPlayer
-              mediaUrl={mediaUrl}
-              utterances={result.utterances}
-              onTimeUpdate={setCurrentTime}
-              selectedSpeakers={selectedSpeakers}
-            />
-            <TranscriptionViewer
-              utterances={result.utterances}
-              currentTime={currentTime}
-              onUtteranceClick={(time) => {
-                const mediaElement = document.querySelector("video, audio");
-                if (mediaElement) {
-                  (mediaElement as HTMLMediaElement).currentTime = time / 1000;
-                }
-              }}
-              selectedSpeakers={selectedSpeakers}
-              onSpeakerToggle={(speaker) => {
-                const newSelectedSpeakers = new Set(selectedSpeakers);
-                if (newSelectedSpeakers.has(speaker)) {
-                  newSelectedSpeakers.delete(speaker);
-                } else {
-                  newSelectedSpeakers.add(speaker);
-                }
-                setSelectedSpeakers(newSelectedSpeakers);
-              }}
-            />
-          </div>
-        )}
       </div>
     </div>
   );
