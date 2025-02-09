@@ -1,11 +1,8 @@
+
 import { TranscriptionResult } from "@/types/assemblyai";
 
 const API_BASE_URL = "https://api.assemblyai.com/v2";
-const API_KEY = "5ef9e585f281418c9f717f5bc99c24ba";
-
-if (!API_KEY) {
-  throw new Error('ASSEMBLYAI_API_KEY environment variable is not set');
-}
+const API_KEY = "5ef9e585f281418c9f717f5bc99c24ba"; // Public API key for demo purposes
 
 export async function uploadAudio(file: File): Promise<string> {
   console.log("Starting audio upload...", { fileName: file.name, fileSize: file.size });
@@ -16,33 +13,32 @@ export async function uploadAudio(file: File): Promise<string> {
     throw new Error(`Unsupported file type: ${mimeType}. Please upload an audio or video file.`);
   }
   
-  // Use the File object directly - it's already a Blob with the correct type
-  const formData = new FormData();
-  formData.append("file", file);
-
-  console.log("Uploading with MIME type:", mimeType);
-
-  const response = await fetch(`${API_BASE_URL}/upload`, {
-    method: "POST",
-    headers: {
-      Authorization: API_KEY,
-    },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const errorData = await response.text();
-    console.error("Upload failed:", {
-      status: response.status,
-      statusText: response.statusText,
-      error: errorData
+  try {
+    const response = await fetch(`${API_BASE_URL}/upload`, {
+      method: "POST",
+      headers: {
+        Authorization: API_KEY,
+      },
+      body: file,
     });
-    throw new Error(`Failed to upload audio file: ${response.statusText}`);
-  }
 
-  const { upload_url } = await response.json();
-  console.log("Upload successful, received URL:", upload_url);
-  return upload_url;
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("Upload failed:", {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData
+      });
+      throw new Error(`Failed to upload audio file: ${response.statusText}`);
+    }
+
+    const { upload_url } = await response.json();
+    console.log("Upload successful, received URL:", upload_url);
+    return upload_url;
+  } catch (error) {
+    console.error("Error during upload:", error);
+    throw error;
+  }
 }
 
 function getMimeType(filename: string): string {
