@@ -10,6 +10,8 @@ import {
   SkipForward,
   Volume2,
   VolumeX,
+  Ear,
+  EarOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +34,7 @@ export function TranscriptionPlayer({
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [originalSound, setOriginalSound] = useState(true);
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
   const [isVideo, setIsVideo] = useState(false);
 
@@ -60,6 +63,11 @@ export function TranscriptionPlayer({
   useEffect(() => {
     if (!mediaRef.current || !utterances || !selectedSpeakers) return;
 
+    if (originalSound) {
+      mediaRef.current.volume = volume;
+      return;
+    }
+
     const currentUtterance = utterances.find(
       (u) =>
         currentTime * 1000 >= u.start &&
@@ -72,7 +80,7 @@ export function TranscriptionPlayer({
     } else {
       mediaRef.current.volume = volume;
     }
-  }, [currentTime, utterances, selectedSpeakers, volume]);
+  }, [currentTime, utterances, selectedSpeakers, volume, originalSound]);
 
   const togglePlay = () => {
     if (mediaRef.current) {
@@ -121,6 +129,10 @@ export function TranscriptionPlayer({
       mediaRef.current.muted = !isMuted;
       setIsMuted(!isMuted);
     }
+  };
+
+  const toggleOriginalSound = () => {
+    setOriginalSound(!originalSound);
   };
 
   const formatTime = (time: number) => {
@@ -231,8 +243,22 @@ export function TranscriptionPlayer({
             onValueChange={(value) => setVolume(value[0] / 100)}
             className="w-24"
           />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleOriginalSound}
+            className="hover:bg-primary/10"
+            title={originalSound ? "Turn off original sound" : "Turn on original sound"}
+          >
+            {originalSound ? (
+              <Ear className="h-5 w-5" />
+            ) : (
+              <EarOff className="h-5 w-5" />
+            )}
+          </Button>
         </div>
       </div>
     </div>
   );
 }
+
