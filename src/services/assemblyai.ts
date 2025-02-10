@@ -1,10 +1,11 @@
+
 import { TranscriptionResult } from "@/types/assemblyai";
 
 const API_BASE_URL = "https://api.assemblyai.com/v2";
 const API_KEY = "5ef9e585f281418c9f717f5bc99c24ba";
 
 if (!API_KEY) {
-  throw new Error('ASSEMBLYAI_API_KEY environment variable is not set');
+  throw new Error('AssemblyAI API key is not available');
 }
 
 export async function uploadAudio(file: File): Promise<string> {
